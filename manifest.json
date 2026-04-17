@@ -1,0 +1,27 @@
+{
+  "name": "CalorIA – Contador de calorías",
+  "short_name": "CalorIA",
+  "description": "Escribí lo que comiste y CalorIA calcula las calorías. Sin buscar, sin elegir.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0d12",
+  "theme_color": "#7c6af5",
+  "orientation": "portrait-primary",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["health", "fitness", "lifestyle"],
+  "screenshots": []
+}
