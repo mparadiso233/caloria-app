@@ -408,41 +408,40 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
         <p>¿Quién sos hoy?</p>
     </div>
 
-    <!-- User selection -->
-    <div id="user-select-section">
-        <div class="user-select-label">Elegí tu usuario</div>
-        <div class="users-row" id="users-row"></div>
-        <div style="text-align:center;margin-top:20px">
-            <button class="pin-back-btn" onclick="forceUpdate()" style="text-decoration:none;opacity:0.6">↻ Forzar actualización de la App</button>
+    <!-- Supabase Auth Section -->
+    <div id="auth-section">
+        <div id="login-form">
+            <div class="user-select-label">Bienvenido a CalorIA</div>
+            <div class="card" style="padding:24px">
+                <div class="form-group" style="margin-bottom:16px"><label>Email</label><input type="email" id="auth-email" placeholder="tu@email.com"></div>
+                <div class="form-group" style="margin-bottom:16px"><label>Contraseña</label><input type="password" id="auth-password" placeholder="••••••••"></div>
+                <button class="btn btn-primary btn-full" onclick="handleAuthLogin()">🚀 Ingresar</button>
+                <div style="text-align:center;margin-top:20px;font-size:13px;color:var(--text3)">
+                    ¿No tenés cuenta? <a href="#" onclick="toggleAuthMode('signup')" style="color:var(--accent2);font-weight:700">Registrate aquí</a>
+                </div>
+            </div>
+        </div>
+
+        <div id="signup-form" style="display:none">
+            <div class="user-select-label">Creá tu cuenta</div>
+            <div class="card" style="padding:24px">
+                <div class="form-group" style="margin-bottom:16px"><label>Nombre</label><input type="text" id="reg-name" placeholder="Ej: Matias"></div>
+                <div class="form-group" style="margin-bottom:16px"><label>Email</label><input type="email" id="reg-email" placeholder="tu@email.com"></div>
+                <div class="form-group" style="margin-bottom:16px"><label>Contraseña</label><input type="password" id="reg-password" placeholder="Mínimo 6 chars"></div>
+                <button class="btn btn-primary btn-full" onclick="handleAuthSignup()">✨ Crear cuenta</button>
+                <div style="text-align:center;margin-top:20px;font-size:13px;color:var(--text3)">
+                    ¿Ya tenés cuenta? <a href="#" onclick="toggleAuthMode('login')" style="color:var(--accent2);font-weight:700">Iniciá sesión</a>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align:center;margin-top:40px">
+            <button class="pin-back-btn" onclick="forceUpdate()" style="text-decoration:none;opacity:0.4;font-size:11px">↻ Ver. v12 — Forzar actualización</button>
         </div>
     </div>
 
-    <!-- PIN entry -->
-    <div id="pin-section" style="display:none">
-        <div class="pin-title" id="pin-title">Ingresá tu PIN</div>
-        <div class="pin-dots" id="pin-dots">
-            <div class="pin-dot" id="pd0"></div>
-            <div class="pin-dot" id="pd1"></div>
-            <div class="pin-dot" id="pd2"></div>
-            <div class="pin-dot" id="pd3"></div>
-        </div>
-        <div class="pin-pad">
-            <button class="pin-btn" onclick="pinDigit('1')">1</button>
-            <button class="pin-btn" onclick="pinDigit('2')">2</button>
-            <button class="pin-btn" onclick="pinDigit('3')">3</button>
-            <button class="pin-btn" onclick="pinDigit('4')">4</button>
-            <button class="pin-btn" onclick="pinDigit('5')">5</button>
-            <button class="pin-btn" onclick="pinDigit('6')">6</button>
-            <button class="pin-btn" onclick="pinDigit('7')">7</button>
-            <button class="pin-btn" onclick="pinDigit('8')">8</button>
-            <button class="pin-btn" onclick="pinDigit('9')">9</button>
-            <button class="pin-btn empty"></button>
-            <button class="pin-btn" onclick="pinDigit('0')">0</button>
-            <button class="pin-btn del" onclick="pinBack()">⌫</button>
-        </div>
-        <div class="pin-error" id="pin-error"></div>
-        <button class="pin-back-btn" onclick="showUserSelect()">← Cambiar usuario</button>
-    </div>
+    <!-- Legacy Spacer -->
+    <div id="pin-section" style="display:none"></div>
 </div>
 
 <!-- ═══════════════════════════════ APP ═══ -->
@@ -969,130 +968,70 @@ const QUANTITY_MAP = {
     'media':0.5,'medio':0.5,'par':2,'par de':2,
 };
 
-// ══════════════════════════════════════
-// MULTI-USER
-// ══════════════════════════════════════
-const DEFAULT_USERS = [
-    {id:'u1', name:'Matias', emoji:'👨', pin:''},
-    {id:'u2', name:'Mi pareja', emoji:'👩', pin:''},
-];
+// ── AUTH HANDLERS ──
+async function handleAuthLogin(){
+    const email = document.getElementById('auth-email').value.trim();
+    const password = document.getElementById('auth-password').value;
+    if(!email || !password) return showToast('⚠️ Completá los campos','var(--orange)');
 
-let currentUser = null;
-let pinBuffer = '';
-let selectedUserForPin = null;
-
-function loadUsers(){
-    try { return JSON.parse(localStorage.getItem('ci_users') || JSON.stringify(DEFAULT_USERS)); }
-    catch { return DEFAULT_USERS; }
-}
-function saveUsers(users){ localStorage.setItem('ci_users', JSON.stringify(users)); }
-
-function renderLoginPage(){
-    const users = loadUsers();
-    const row = document.getElementById('users-row');
-    row.innerHTML = users.map(u => `
-        <div class="user-card" id="uc-${u.id}" onclick="selectUser('${u.id}')">
-            <div class="user-avatar">${u.emoji}</div>
-            <div class="user-name">${u.name}</div>
-            <div class="user-sub">${u.pin ? '🔐 PIN activo' : '🔓 Sin PIN'}</div>
-        </div>
-    `).join('');
+    const { data, error } = await sbClient.auth.signInWithPassword({ email, password });
+    if(error) return showToast('❌ ' + error.message, 'var(--red)');
+    
+    showToast('🚀 Bienvenida/o!');
 }
 
-function showUserSelect(){
-    document.getElementById('pin-section').style.display = 'none';
-    document.getElementById('user-select-section').style.display = 'block';
-    selectedUserForPin = null;
-    pinBuffer = '';
-}
-
-function selectUser(userId){
-    const users = loadUsers();
-    const user = users.find(u => u.id === userId);
-    if(!user) return;
-
-    // Highlight selected
-    document.querySelectorAll('.user-card').forEach(c => c.classList.remove('selected'));
-    document.getElementById('uc-'+userId).classList.add('selected');
-
-    if(!user.pin){
-        // No PIN → login directly
-        setTimeout(() => login(user), 200);
-    } else {
-        // Show PIN pad
-        selectedUserForPin = user;
-        pinBuffer = '';
-        document.getElementById('pin-title').textContent = `PIN para ${user.name} ${user.emoji}`;
-        document.getElementById('pin-error').textContent = '';
-        updatePinDots();
-        document.getElementById('user-select-section').style.display = 'none';
-        document.getElementById('pin-section').style.display = 'block';
+async function handleAuthSignup(){
+    const name = document.getElementById('reg-name').value.trim();
+    const email = document.getElementById('reg-email').value.trim();
+    const password = document.getElementById('reg-password').value;
+    
+    if(!name || !email || !password) return showToast('⚠️ Completá todo','var(--orange)');
+    
+    showToast('⏳ Creando cuenta...');
+    const { data, error } = await sbClient.auth.signUp({
+        email, 
+        password,
+        options: { data: { display_name: name, emoji: '👤' } }
+    });
+    
+    if(error) return showToast('❌ ' + error.message, 'var(--red)');
+    if(data.user) {
+        await sbClient.from('profiles').insert({
+            id: data.user.id,
+            display_name: name,
+            emoji: '👤'
+        });
+        showToast('✨ Cuenta creada. ¡Ingresando!');
+        toggleAuthMode('login');
     }
 }
 
-function updatePinDots(){
-    for(let i=0;i<4;i++){
-        document.getElementById('pd'+i).classList.toggle('filled', i < pinBuffer.length);
-    }
+function toggleAuthMode(mode){
+    document.getElementById('login-form').style.display = mode === 'login' ? 'block' : 'none';
+    document.getElementById('signup-form').style.display = mode === 'signup' ? 'block' : 'none';
 }
 
-function pinDigit(d){
-    if(pinBuffer.length >= 4) return;
-    pinBuffer += d;
-    updatePinDots();
-    if(pinBuffer.length === 4) setTimeout(checkPin, 150);
-}
-
-function pinBack(){
-    pinBuffer = pinBuffer.slice(0,-1);
-    updatePinDots();
-    document.getElementById('pin-error').textContent = '';
-}
-
-function checkPin(){
-    if(pinBuffer === selectedUserForPin.pin){
-        document.getElementById('pin-error').textContent = '';
-        login(selectedUserForPin);
-    } else {
-        document.getElementById('pin-error').textContent = '❌ PIN incorrecto';
-        pinBuffer = '';
-        updatePinDots();
-        // Shake animation
-        const dots = document.getElementById('pin-dots');
-        dots.style.animation = 'none';
-        dots.offsetHeight; // reflow
-        dots.style.animation = 'shake .4s ease';
-    }
-}
-
-// Add shake keyframe dynamically
-const shakeStyle = document.createElement('style');
-shakeStyle.textContent = '@keyframes shake{0%,100%{transform:none}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}';
-document.head.appendChild(shakeStyle);
-
-function login(user){
-    currentUser = user;
-    localStorage.setItem('ci_current_user', user.id);
+function login(supabaseUser){
+    currentUser = {
+        id: supabaseUser.id,
+        name: supabaseUser.user_metadata?.display_name || supabaseUser.email.split('@')[0],
+        emoji: supabaseUser.user_metadata?.emoji || '👤'
+    };
+    
     document.getElementById('login-page').style.display = 'none';
     document.getElementById('app').style.display = 'flex';
     document.getElementById('app').style.flexDirection = 'column';
-
-    // Show current user chip
-    document.getElementById('current-user-chip').textContent = `${user.emoji} ${user.name}`;
+    document.getElementById('current-user-chip').textContent = `${currentUser.emoji} ${currentUser.name}`;
 
     loadState();
     initApp();
+    pullFromCloud(); 
 }
 
-function logout(){
+async function logout(){
     if(!confirm('¿Cerrar sesión?')) return;
-    localStorage.removeItem('ci_current_user');
-    currentUser = null;
-    state = {db:{}, customFoods:[], templates:[], weightLog:[], settings:{dailyGoal:2000, name:''}, gym:{}, customExercises:[], favorites:[], routine:{} };
-    document.getElementById('app').style.display = 'none';
-    document.getElementById('login-page').style.display = 'flex';
-    showUserSelect();
-    renderLoginPage();
+    await sbClient.auth.signOut();
+    location.reload(); 
 }
 
 // ══════════════════════════════════════
@@ -2406,32 +2345,6 @@ function initApp(){
     else mealSel.value='cena';
 }
 
-// ══════════════════════════════════════
-// BOOT
-// ══════════════════════════════════════
-renderLoginPage();
-
-const savedUserId = localStorage.getItem('ci_current_user');
-if(savedUserId){
-    const users = loadUsers();
-    const savedUser = users.find(u=>u.id===savedUserId);
-    if(savedUser){
-        // Check if user has PIN — if so, still ask for it on app reload for security
-        if(savedUser.pin){
-            // Show PIN entry directly
-            selectedUserForPin = savedUser;
-            pinBuffer = '';
-            document.getElementById('pin-title').textContent = `Bienvenido/a de vuelta, ${savedUser.name} ${savedUser.emoji}`;
-            document.getElementById('pin-error').textContent = '';
-            updatePinDots();
-            document.getElementById('user-select-section').style.display='none';
-            document.getElementById('pin-section').style.display='block';
-        } else {
-            login(savedUser);
-        }
-    }
-}
-
 // ── SUPABASE SYNC ──
 async function initSupabase(){
     const url = document.getElementById('sb-url').value.trim();
@@ -2492,21 +2405,33 @@ async function pullFromCloud(){
     } catch(e) { console.error('[Cloud Pull]', e); }
 }
 
-// Auto-connect if config exists
-(async function autoConnectCloud(){
+// Auto-connect and check session
+(async function initAppWithAuth(){
     let cfg = JSON.parse(localStorage.getItem(SB_CONFIG_KEY) || '{}');
     if(!cfg.url) cfg = { url: SB_DEFAULT_URL, key: SB_DEFAULT_KEY };
     
-    if(cfg.url && cfg.key){
+    if(cfg.url && cfg.key && window.supabase){
         try {
-            setTimeout(() => {
-                if(window.supabase) {
-                    sbClient = window.supabase.createClient(cfg.url, cfg.key);
-                    updateCloudStatus();
-                    pullFromCloud(); // Auto-sync on boot
+            sbClient = window.supabase.createClient(cfg.url, cfg.key);
+            updateCloudStatus();
+
+            // Check existing session
+            const { data: { session } } = await sbClient.auth.getSession();
+            if(session) {
+                login(session.user);
+            }
+
+            // Listen for auth changes
+            sbClient.auth.onAuthStateChange((event, session) => {
+                if (event === 'SIGNED_IN' && session) {
+                    login(session.user);
                 }
-            }, 500);
-        } catch(e) { console.error('[AutoConnect]', e); }
+                if (event === 'SIGNED_OUT') {
+                    location.reload();
+                }
+            });
+
+        } catch(e) { console.error('[Auth Init]', e); }
     }
 })();
 </script>
