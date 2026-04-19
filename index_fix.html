@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -391,6 +391,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
 </style>
 </head>
 <body>
+<div id="debug-error" style="display:none;background:#f8d7da;color:#721c24;padding:15px;position:fixed;top:0;left:0;width:100%;z-index:9999;font-family:monospace;font-size:12px;border-bottom:2px solid #f5c6cb;white-space:pre-wrap"></div>
+<script>
+window.onerror = function(msg, url, line, col, error) {
+    const el = document.getElementById('debug-error');
+    el.style.display = 'block';
+    el.textContent = '❌ ERROR JS:\n' + msg + '\nLínea: ' + line + '\nCol: ' + col + '\nURL: ' + url;
+    return false;
+};
+</script>
 
 <!-- ═══════════ UPDATE BANNER ═══════════ -->
 <div id="update-banner">
@@ -1029,7 +1038,7 @@ function logout(){
     if(!confirm('¿Cerrar sesión?')) return;
     localStorage.removeItem('ci_current_user');
     currentUser = null;
-    state = {db:{}, customFoods:[], templates:[], weightLog:[], settings:{dailyGoal:2000, name:''}, gym:{}, customExercises:[], favorites:[], routine:{} };
+    state = {db:{}, customFoods:[], templates:[], weightLog:[], settings:{dailyGoal:2000, name:''}};
     document.getElementById('app').style.display = 'none';
     document.getElementById('login-page').style.display = 'flex';
     showUserSelect();
@@ -2216,7 +2225,15 @@ document.getElementById('food-input').addEventListener('keydown',e=>{ if(e.key==
 document.getElementById('btn-prev').addEventListener('click',()=>changeDay(-1));
 document.getElementById('btn-next').addEventListener('click',()=>changeDay(+1));
 
-
+// ══════════════════════════════════════
+// INIT APP (after login)
+// ══════════════════════════════════════
+function saveAll(){
+    save('db',state.db); save('cf',state.customFoods);
+    save('tpl',state.templates); save('weight',state.weightLog);
+    save('settings',state.settings); save('gym',state.gym); save('exercises',state.customExercises);
+    save('favs', state.favorites); save('routine', state.routine);
+}
 
 
 function toggleFavorite(id){
