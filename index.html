@@ -19,7 +19,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Outfit:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{
+:root, [data-theme="dark"] {
     --bg:#0b0d12;--bg2:#111318;--bg3:#161921;--card:#1a1e28;--card2:#20263380;
     --border:#2a3045;--border2:#1e2438;
     --accent:#7c6af5;--accent2:#a78bfa;--accent3:#c4b5fd;
@@ -28,11 +28,28 @@
     --text:#eef0f6;--text2:#8b95ae;--text3:#4a5470;
     --glow:rgba(124,106,245,.25);--glow2:rgba(124,106,245,.12);
     --radius:16px;--tab-h:72px;
+    --shadow: 0 8px 32px 0 rgba(0,0,0,0.4);
+}
+
+[data-theme="light"] {
+    --bg:#f8fafc;--bg2:#ffffff;--bg3:#f1f5f9;--card:#ffffff;--card2:rgba(255,255,255,0.7);
+    --border:#e2e8f0;--border2:#cbd5e1;
+    --accent:#6366f1;--accent2:#818cf8;--accent3:#4f46e5;
+    --green:#10b981;--green2:#34d399;--orange:#f97316;--red:#ef4444;
+    --yellow:#f59e0b;--cyan:#06b6d4;--pink:#db2777;
+    --text:#0f172a;--text2:#475569;--text3:#64748b;
+    --glow:rgba(99,102,241,0.1);--glow2:rgba(99,102,241,0.05);
+    --shadow: 0 8px 30px rgba(0,0,0,0.04);
 }
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{height:100%;overflow:hidden}
+html,body{height:100%;overflow:hidden;transition: background 0.3s ease, color 0.3s ease}
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column}
-body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 10%,rgba(124,106,245,.08) 0%,transparent 55%),radial-gradient(ellipse at 80% 90%,rgba(167,139,250,.06) 0%,transparent 50%);pointer-events:none;z-index:0}
+body::before{
+    content:'';position:fixed;inset:0;
+    background: radial-gradient(circle at 0% 0%, var(--glow) 0%, transparent 40%),
+                radial-gradient(circle at 100% 100%, var(--glow2) 0%, transparent 40%);
+    pointer-events:none;z-index:0;
+}
 
 /* ── LOGIN PAGE ── */
 #login-page{
@@ -142,12 +159,71 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .c-prot{color:var(--green2)}.c-carb{color:var(--yellow)}.c-fat{color:var(--orange)}
 
 /* ── INPUTS ── */
-textarea,input[type=text],input[type=number],input[type=date],select{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:12px 14px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;outline:none;transition:border-color .2s;width:100%}
+textarea,input[type=text],input[type=number],input[type=date],select{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:12px 14px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;outline:none;transition:all .3s ease;width:100%}
 textarea{resize:none}
-textarea:focus,input:focus,select:focus{border-color:var(--accent)}
-::placeholder{color:var(--text3)}
-select option{background:var(--card)}
-label{font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px}
+textarea:focus,input:focus,select:focus{border-color:var(--accent);background:var(--bg2);box-shadow:0 0 0 4px var(--glow2)}
+::placeholder{color:var(--text3);opacity:0.6}
+select option{background:var(--bg2);color:var(--text)}
+label{font-size:12px;font-weight:700;color:var(--text3);display:block;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px}
+
+/* ── SMART LOGGER ── */
+.smart-input-wrap {
+    margin-bottom: 20px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 6px;
+    transition: all 0.3s;
+    box-shadow: var(--shadow);
+}
+.smart-input-container {
+    padding: 14px;
+    position: relative;
+    display: flex;
+    gap: 12px;
+}
+.smart-icon {
+    font-size: 24px;
+    padding-top: 4px;
+    opacity: 0.8;
+}
+#food-input {
+    background: transparent;
+    border: none;
+    padding: 4px 0;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.5;
+    min-height: 80px;
+}
+#food-input:focus {
+    box-shadow: none;
+}
+.smart-actions {
+    display: flex;
+    gap: 8px;
+    padding: 8px;
+    background: var(--bg3);
+    border-radius: 14px;
+}
+.btn-primary.btn-glow {
+    box-shadow: 0 4px 15px var(--glow);
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+.btn-ghost-sq {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text2);
+    cursor: pointer;
+}
 
 /* ── BUTTONS ── */
 .btn{border:none;border-radius:12px;padding:11px 18px;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px;transition:all .2s}
@@ -500,21 +576,24 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
         <div class="horiz-bar" id="templates-bar"></div>
     </div>
 
-    <!-- Input: escribir -->
-    <div class="card">
-        <label>✏️ Escribí lo que comiste <span style="color:var(--text3);font-weight:400">(Ctrl+Enter = analizar)</span></label>
-        <textarea id="food-input" rows="3" placeholder="Ej: dos churrascos de pollo con ensalada de lechuga y tomate"></textarea>
-        <div class="input-actions">
-            <select class="meal-select" id="meal-type">
+    <!-- Input: Smart Logger -->
+    <div class="smart-input-wrap">
+        <div class="smart-input-container">
+            <span class="smart-icon">📔</span>
+            <textarea id="food-input" rows="3" placeholder="Ej: dos churrascos de pollo con ensalada de lechuga y tomate"></textarea>
+        </div>
+        <div class="smart-actions" style="padding: 10px; display: flex; gap: 8px; align-items: center">
+            <select class="meal-select" id="meal-type" style="margin: 0; flex: 1">
                 <option value="desayuno">🌅 Desayuno</option>
                 <option value="almuerzo" selected>☀️ Almuerzo</option>
                 <option value="merienda">🍵 Merienda</option>
                 <option value="cena">🌙 Cena</option>
                 <option value="snack">🍎 Snack</option>
             </select>
-            <button class="btn btn-primary btn-full" id="btn-analyze" onclick="analyzeFood()">
+            <button class="btn btn-primary btn-glow" id="btn-analyze" onclick="analyzeFood()" style="flex: 1.5; white-space: nowrap">
                 <span>🔍</span> Analizar
             </button>
+            <button class="btn-ghost-sq" onclick="clearInput()" title="Limpiar" style="flex: 0 0 48px">🧹</button>
         </div>
     </div>
 
@@ -742,16 +821,21 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
         </ol>
     </div>
 
-    <!-- Backup -->
+    <!-- Backup & Themes -->
     <div class="settings-card">
-        <div class="settings-card-title">💾 Backup</div>
-        <p style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">Exportá tus datos o importalos en otro dispositivo.</p>
-        <div style="display:flex;gap:8px">
-            <button class="btn btn-ghost btn-full" onclick="exportData()">⬇️ Exportar</button>
-            <button class="btn btn-ghost btn-full" onclick="document.getElementById('import-file').click()">⬆️ Importar</button>
+        <div class="settings-card-title">🎨 Apariencia y Datos</div>
+        <div class="settings-row">
+            <div><div class="settings-row-label">Modo Claro</div></div>
+            <button class="btn btn-sm" id="theme-toggle" onclick="toggleAppTheme()" style="min-width:110px">🌙 Oscuro</button>
+        </div>
+        <div class="settings-row" style="margin-top:10px; border-bottom:none; padding-bottom:0">
+            <div><div class="settings-row-label">Backup .json</div><div class="settings-row-sub">Exportá tus datos</div></div>
+            <div style="display:flex;gap:8px">
+                <button class="btn btn-ghost btn-full" onclick="exportData()">⬇️ Exportar</button>
+                <button class="btn btn-ghost btn-full" onclick="document.getElementById('import-file').click()">⬆️ Importar</button>
+            </div>
         </div>
         <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
-        <p style="font-size:11px;color:var(--text3);margin-top:10px;text-align:center">Guardá el .json en Google Drive o WhatsApp</p>
     </div>
 
     <!-- Cerrar sesión -->
@@ -974,8 +1058,15 @@ async function handleAuthLogin(){
     const password = document.getElementById('auth-password').value;
     if(!email || !password) return showToast('⚠️ Completá los campos','var(--orange)');
 
+    showToast('⏳ Ingresando...');
     const { data, error } = await sbClient.auth.signInWithPassword({ email, password });
-    if(error) return showToast('❌ ' + error.message, 'var(--red)');
+    
+    if(error){
+        let msg = error.message;
+        if(msg === 'Invalid login credentials') msg = 'Email o contraseña incorrectos';
+        if(msg === 'Email not confirmed') msg = 'Revisá tu email para confirmar la cuenta';
+        return showToast('❌ ' + msg, 'var(--red)');
+    }
     
     showToast('🚀 Bienvenida/o!');
 }
@@ -986,7 +1077,8 @@ async function handleAuthSignup(){
     const password = document.getElementById('reg-password').value;
     
     if(!name || !email || !password) return showToast('⚠️ Completá todo','var(--orange)');
-    
+    if(password.length < 6) return showToast('⚠️ La clave debe ser de 6+ chars','var(--orange)');
+
     showToast('⏳ Creando cuenta...');
     const { data, error } = await sbClient.auth.signUp({
         email, 
@@ -995,13 +1087,15 @@ async function handleAuthSignup(){
     });
     
     if(error) return showToast('❌ ' + error.message, 'var(--red)');
+    
     if(data.user) {
+        // Create profile in DB (public.profiles)
         await sbClient.from('profiles').insert({
             id: data.user.id,
             display_name: name,
             emoji: '👤'
         });
-        showToast('✨ Cuenta creada. ¡Ingresando!');
+        showToast('📬 Revisá tu email para confirmar la cuenta y poder entrar.', 'var(--cyan)');
         toggleAuthMode('login');
     }
 }
@@ -1629,7 +1723,23 @@ function initSettings(){
     const cfg = JSON.parse(localStorage.getItem(SB_CONFIG_KEY) || '{}');
     document.getElementById('sb-url').value = cfg.url || SB_DEFAULT_URL;
     document.getElementById('sb-key').value = cfg.key || SB_DEFAULT_KEY;
+
+    applyThemeLabel();
     updateCloudStatus();
+}
+
+function toggleAppTheme(){
+    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('ci_theme', next);
+    applyThemeLabel();
+}
+
+function applyThemeLabel(){
+    const mode = document.documentElement.getAttribute('data-theme') || 'dark';
+    const btn = document.getElementById('theme-toggle');
+    if(btn) btn.textContent = mode === 'dark' ? '🌙 Oscuro' : '☀️ Claro';
 }
 
 function updateGoalDisplay(){
@@ -2407,6 +2517,10 @@ async function pullFromCloud(){
 
 // Auto-connect and check session
 (async function initAppWithAuth(){
+    // Set initial theme
+    const savedTheme = localStorage.getItem('ci_theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+
     let cfg = JSON.parse(localStorage.getItem(SB_CONFIG_KEY) || '{}');
     if(!cfg.url) cfg = { url: SB_DEFAULT_URL, key: SB_DEFAULT_KEY };
     
