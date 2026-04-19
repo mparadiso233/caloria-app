@@ -40,6 +40,8 @@ self.addEventListener('fetch', event => {
   if (!event.request.url.startsWith('http')) return;
 
   const url = new URL(event.request.url);
+  if (url.hostname.includes('openfoodfacts')) return; // No interferir con la API externa
+
   const isNavigation = event.request.mode === 'navigate';
   const isIndexHtml  = url.pathname === '/' || url.pathname.endsWith('index.html');
 
