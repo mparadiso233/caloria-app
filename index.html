@@ -264,6 +264,16 @@ label{font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bot
 .template-kcal-badge{background:var(--bg3);border:1px solid var(--border);font-size:11px;font-weight:600;color:var(--accent2);padding:3px 10px;border-radius:20px}
 .template-items-list{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
 .template-item-line{font-size:12px;color:var(--text2);display:flex;justify-content:space-between}
+/* ── SEARCH RESULTS (OFF) ── */
+.off-results{max-height:400px;overflow-y:auto;margin-top:14px;display:flex;flex-direction:column;gap:10px}
+.off-item{background:var(--card2);border:1px solid var(--border2);border-radius:12px;padding:12px;display:flex;gap:12px;cursor:pointer;transition:border-color .2s}
+.off-item:hover{border-color:var(--accent2)}
+.off-img{width:50px;height:50px;border-radius:8px;object-fit:cover;background:var(--bg3);flex-shrink:0}
+.off-info{flex:1;min-width:0}
+.off-name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.off-brand{font-size:11px;color:var(--text3);margin-bottom:4px}
+.off-macros{display:flex;gap:8px;font-size:10px;color:var(--text2)}
+.off-kcal{color:var(--accent2);font-weight:700}
 
 /* ── MODAL ── */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(10px);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
@@ -531,6 +541,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
         <button class="btn btn-primary btn-full" style="margin-bottom:14px" onclick="openFoodModal()">➕ Crear alimento personalizado</button>
         <div class="section-title">Mis alimentos personalizados</div>
         <div id="custom-foods-list"></div>
+
+        <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--border2)">
+            <div class="section-title">🌍 Buscador mundial (OpenFoodFacts)</div>
+            <div style="display:flex;gap:8px;margin-bottom:12px">
+                <input type="text" id="off-search-input" placeholder="Ej: Yogur Ser Proteina, Oreo..." onkeypress="if(event.key==='Enter') searchOnline()">
+                <button class="btn btn-ghost" onclick="searchOnline()" id="btn-off-search" style="flex-shrink:0">🔍</button>
+            </div>
+            <div class="off-results" id="off-results"></div>
+        </div>
     </div>
     <div class="sub-page" id="sp-conjuntos">
         <div id="templates-list"></div>
@@ -1779,6 +1798,80 @@ function importData(event){
     };
     reader.readAsText(file);
     event.target.value='';
+}
+
+// ── ONLINE SEARCH (OpenFoodFacts) ──
+
+async function searchOnline(){
+    const q = document.getElementById('off-search-input').value.trim();
+    if(q.length < 3) { showToast('⚠️ Escribí al menos 3 letras','var(--orange)'); return; }
+    
+    const btn = document.getElementById('btn-off-search');
+    const resultsEl = document.getElementById('off-results');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner"></div>';
+    resultsEl.innerHTML = '<p style="text-align:center;color:var(--text3);font-size:12px;padding:20px">Buscando productos reales...</p>';
+    
+    try {
+        // API: OpenFoodFacts Search
+        const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=20&fields=product_name,brands,image_small_url,nutriments,code`;
+        const resp = await fetch(url);
+        const data = await resp.json();
+        
+        if(!data.products || data.products.length === 0){
+            resultsEl.innerHTML = '<p style="text-align:center;color:var(--text3);font-size:12px;padding:20px">No se encontraron productos.</p>';
+            return;
+        }
+        
+        resultsEl.innerHTML = data.products.map(p => {
+            const n = p.nutriments || {};
+            const kcal = n['energy-kcal_100g'] || n['energy-kcal_serving'] || 0;
+            const prot = n['proteins_100g'] || 0;
+            const carb = n['carbohydrates_100g'] || 0;
+            const fat  = n['fat_100g'] || 0;
+            
+            if(kcal === 0) return ''; // Skip products without info
+            
+            return `
+                <div class="off-item" onclick="importFromOFF('${p.code}', '${p.product_name.replace(/'/g,"")}', '${(p.brands||"").replace(/'/g,"")}', ${kcal}, ${prot}, ${carb}, ${fat}, '${p.image_small_url || ""}')">
+                    <img src="${p.image_small_url || 'https://via.placeholder.com/50?text=?'}" class="off-img">
+                    <div class="off-info">
+                        <div class="off-name">${p.product_name}</div>
+                        <div class="off-brand">${p.brands || 'Marca desconocida'}</div>
+                        <div class="off-macros">
+                            <span class="off-kcal">${Math.round(kcal)} kcal</span> 
+                            <span>P: ${prot}g</span> 
+                            <span>C: ${carb}g</span> 
+                            <span>G: ${fat}g</span>
+                            <span style="color:var(--text3)">(cada 100g)</span>
+                        </div>
+                    </div>
+                    <div style="color:var(--accent2);font-size:20px;display:flex;align-items:center">➕</div>
+                </div>
+            `;
+        }).join('');
+        
+    } catch(err) {
+        resultsEl.innerHTML = '<p style="text-align:center;color:var(--red);font-size:12px;padding:20px">Error al conectar con la base de datos.</p>';
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '🔍';
+    }
+}
+
+function importFromOFF(code, name, brand, kcal, prot, carb, fat, img){
+    // Open modal with pre-filled data
+    openFoodModal();
+    document.getElementById('cf-name').value = `${brand ? brand + ' ' : ''}${name}`.trim();
+    document.getElementById('cf-unit').value = '100g';
+    document.getElementById('cf-kcal').value = Math.round(kcal);
+    document.getElementById('cf-prot').value = prot;
+    document.getElementById('cf-carb').value = carb;
+    document.getElementById('cf-fat').value  = fat;
+    document.getElementById('cf-emoji').value = '📦';
+    
+    showToast('📥 Datos cargados! Podés ajustarlos y guardar.');
 }
 
 // ══════════════════════════════════════
