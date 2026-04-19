@@ -1,6 +1,6 @@
 // CalorIA – Service Worker
 // ⚠️ Cambiá CACHE_VERSION para forzar actualización en todos los dispositivos
-const CACHE_VERSION = 'v5';
+const CACHE_VERSION = 'v6';
 const CACHE_NAME = `caloria-${CACHE_VERSION}`;
 
 const LOCAL_ASSETS = [
