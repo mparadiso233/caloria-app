@@ -2,7 +2,7 @@
   "name": "CalorIA – Contador de calorías",
   "short_name": "CalorIA",
   "description": "Escribí lo que comiste y CalorIA calcula las calorías. Sin buscar, sin elegir.",
-  "start_url": "/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#0b0d12",
   "theme_color": "#7c6af5",

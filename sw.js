@@ -4,11 +4,11 @@ const CACHE_VERSION = 'v5';
 const CACHE_NAME = `caloria-${CACHE_VERSION}`;
 
 const LOCAL_ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png',
+  './',
+  'index.html',
+  'manifest.json',
+  'icon-192.png',
+  'icon-512.png',
 ];
 
 // ── INSTALL ──────────────────────────────────────────
