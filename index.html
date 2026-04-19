@@ -856,6 +856,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
 <script>
 let supabase = null;
 const SB_CONFIG_KEY = 'ci_sb_config';
+const SB_DEFAULT_URL = 'https://bnxobjaxickvwpriavxl.supabase.co';
+const SB_DEFAULT_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJueG9iamF4aWNrdndwcmlhdnhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2MzQxNTEsImV4cCI6MjA5MjIxMDE1MX0.Bnd0Aw7LtNTEbLja3wv6GH3Ezr9PHTIZnpJCriSkFtI';
 // ══════════════════════════════════════
 // FOOD DATABASE
 // ══════════════════════════════════════
@@ -1649,8 +1651,8 @@ function initSettings(){
 
     // Cloud config
     const cfg = JSON.parse(localStorage.getItem(SB_CONFIG_KEY) || '{}');
-    if(cfg.url) document.getElementById('sb-url').value = cfg.url;
-    if(cfg.key) document.getElementById('sb-key').value = cfg.key;
+    document.getElementById('sb-url').value = cfg.url || SB_DEFAULT_URL;
+    document.getElementById('sb-key').value = cfg.key || SB_DEFAULT_KEY;
     updateCloudStatus();
 }
 
@@ -2393,14 +2395,16 @@ async function pullFromCloud(){
 
 // Auto-connect if config exists
 (async function autoConnectCloud(){
-    const cfg = JSON.parse(localStorage.getItem(SB_CONFIG_KEY) || '{}');
+    let cfg = JSON.parse(localStorage.getItem(SB_CONFIG_KEY) || '{}');
+    if(!cfg.url) cfg = { url: SB_DEFAULT_URL, key: SB_DEFAULT_KEY };
+    
     if(cfg.url && cfg.key){
         try {
-            // Give a tiny delay for SDK to load
             setTimeout(() => {
                 if(window.supabase) {
                     supabase = window.supabase.createClient(cfg.url, cfg.key);
                     updateCloudStatus();
+                    pullFromCloud(); // Auto-sync on boot
                 }
             }, 500);
         } catch(e) { console.error('[AutoConnect]', e); }
