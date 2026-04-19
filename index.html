@@ -264,16 +264,15 @@ label{font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bot
 .template-kcal-badge{background:var(--bg3);border:1px solid var(--border);font-size:11px;font-weight:600;color:var(--accent2);padding:3px 10px;border-radius:20px}
 .template-items-list{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
 .template-item-line{font-size:12px;color:var(--text2);display:flex;justify-content:space-between}
-/* ── SEARCH RESULTS (OFF) ── */
-.off-results{max-height:400px;overflow-y:auto;margin-top:14px;display:flex;flex-direction:column;gap:10px}
-.off-item{background:var(--card2);border:1px solid var(--border2);border-radius:12px;padding:12px;display:flex;gap:12px;cursor:pointer;transition:border-color .2s}
-.off-item:hover{border-color:var(--accent2)}
-.off-img{width:50px;height:50px;border-radius:8px;object-fit:cover;background:var(--bg3);flex-shrink:0}
-.off-info{flex:1;min-width:0}
-.off-name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.off-brand{font-size:11px;color:var(--text3);margin-bottom:4px}
-.off-macros{display:flex;gap:8px;font-size:10px;color:var(--text2)}
 .off-kcal{color:var(--accent2);font-weight:700}
+
+/* ── FAVORITES BAR ── */
+.fav-bar{display:flex;gap:8px;overflow-x:auto;padding-bottom:10px;margin-bottom:10px}
+.fav-bar::-webkit-scrollbar{height:3px}
+.fav-bar::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.chip-fav{background:var(--card);border:1px solid var(--border);border-radius:30px;padding:8px 14px;font-size:12px;font-weight:600;color:var(--text);cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px;transition:all .2s;flex-shrink:0}
+.chip-fav:hover{border-color:var(--yellow);transform:translateY(-2px)}
+.star-icon{color:var(--yellow);font-size:14px}
 
 /* ── MODAL ── */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(10px);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
@@ -470,6 +469,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
                 <div class="macro-pill"><div class="mp-val c-fat"  id="m-fat">0g</div><div class="mp-lbl">Grasas</div></div>
             </div>
         </div>
+    </div>
+
+    <!-- Favorites Bar -->
+    <div id="favorites-section" style="display:none;margin-bottom:14px">
+        <div class="section-title">⭐ Favoritos</div>
+        <div class="fav-bar" id="favorites-bar"></div>
     </div>
 
     <!-- Templates bar -->
@@ -955,7 +960,7 @@ function logout(){
 // ══════════════════════════════════════
 // STATE & STORAGE (namespaced by user)
 // ══════════════════════════════════════
-let state = { db:{}, customFoods:[], templates:[], weightLog:[], settings:{dailyGoal:2000,name:''}, gym:{}, customExercises:[] };
+let state = { db:{}, customFoods:[], templates:[], weightLog:[], settings:{dailyGoal:2000,name:''}, gym:{}, customExercises:[], favorites:[] };
 
 function uk(k){ return `ci_${k}_${currentUser.id}`; }
 
@@ -967,13 +972,16 @@ function loadState(){
     try { state.settings        = JSON.parse(localStorage.getItem(uk('settings')) || '{"dailyGoal":2000,"name":""}'); } catch{}
     try { state.gym             = JSON.parse(localStorage.getItem(uk('gym'))      || '{}'); } catch{}
     try { state.customExercises = JSON.parse(localStorage.getItem(uk('exercises'))|| '[]'); } catch{}
+    try { state.favorites       = JSON.parse(localStorage.getItem(uk('favs'))     || '[]'); } catch{}
 }
 function save(k,v){ localStorage.setItem(uk(k), JSON.stringify(v)); }
 function saveAll(){
     save('db',state.db); save('cf',state.customFoods);
     save('tpl',state.templates); save('weight',state.weightLog);
-    save('settings',state.settings);
+    save('settings',state.settings); save('gym',state.gym); save('exercises',state.customExercises);
+    save('favs', state.favorites);
 }
+
 
 function todayStr(){ return new Date().toISOString().split('T')[0]; }
 function ensureDay(d){ if(!state.db[d]) state.db[d]={entries:[]}; }
@@ -1550,7 +1558,7 @@ function saveGoal(){
     const v=parseInt(document.getElementById('goal-input').value);
     if(isNaN(v)||v<500){ showToast('⚠️ Objetivo inválido','var(--red)'); return; }
     state.settings.dailyGoal=v;
-    save('settings',state.settings);
+    save('settings',state.settings'); save('gym',state.gym); save('exercises',state.customExercises); save('favs', state.favorites);
     renderSummary();
     showToast('🎯 Objetivo guardado');
 }
@@ -1573,7 +1581,7 @@ function saveProfile(){
     }
     // Also save display name to settings
     state.settings.name = name;
-    save('settings',state.settings);
+    save('settings',state.settings'); save('gym',state.gym); save('exercises',state.customExercises); save('favs', state.favorites);
     showToast('✅ Perfil guardado');
 }
 
@@ -1990,12 +1998,57 @@ document.getElementById('btn-next').addEventListener('click',()=>changeDay(+1));
 function saveAll(){
     save('db',state.db); save('cf',state.customFoods);
     save('tpl',state.templates); save('weight',state.weightLog);
-    save('settings',state.settings); save('gym',state.gym);
+    save('settings',state.settings'); save('gym',state.gym); save('exercises',state.customExercises); save('favs', state.favorites); save('gym',state.gym);
     save('exercises',state.customExercises);
 }
 
+function toggleFavorite(id){
+    const idx = state.favorites.indexOf(id);
+    if(idx === -1) { state.favorites.push(id); showToast('⭐ Agregado a favoritos'); }
+    else { state.favorites.splice(idx, 1); showToast('☆ Quitado de favoritos'); }
+    save('favs', state.favorites);
+    renderCustomFoods();
+    renderFavoritesBar();
+}
+
+function renderFavoritesBar(){
+    const bar = document.getElementById('favorites-bar');
+    const section = document.getElementById('favorites-section');
+    if(!state.favorites || state.favorites.length === 0){
+        section.style.display = 'none';
+        return;
+    }
+    const favFoods = state.favorites.map(id => {
+        return state.customFoods.find(f => f.id === id) || FOOD_DB_BUILTIN.find(f => f.id === id);
+    }).filter(f => f);
+
+    if(favFoods.length === 0) { section.style.display = 'none'; return; }
+    
+    section.style.display = 'block';
+    bar.innerHTML = favFoods.map(f => `
+        <div class="chip-fav" onclick="quickAddFood('${f.id}')">
+            <span>${f.emoji}</span>
+            <span>${f.name}</span>
+        </div>
+    `).join('');
+}
+
+function quickAddFood(foodId){
+    const food = state.customFoods.find(f => f.id === foodId) || FOOD_DB_BUILTIN.find(f => f.id === foodId);
+    if(!food) return;
+    const mealType = document.getElementById('meal-type').value;
+    const item = makeFoodItem(food, 1);
+    const time = new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+    ensureDay(currentDate);
+    state.db[currentDate].entries.push({text:food.name, mealType, time, items:[item]});
+    save('db',state.db);
+    renderSummary(); renderHistory();
+    showToast(`✅ ${food.emoji} ${food.name} agregado`);
+}
+
 function initApp(){
-    renderDateNav(); renderSummary(); renderHistory(); renderTemplatesBar();
+
+    renderDateNav(); renderSummary(); renderHistory(); renderTemplatesBar(); renderFavoritesBar();
     document.getElementById('w-date').value = todayStr();
     const h=new Date().getHours();
     const mealSel=document.getElementById('meal-type');
