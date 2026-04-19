@@ -590,6 +590,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
         <div class="tab-mini active" id="gt-hoy" onclick="switchGymSub('hoy')">💪 Hoy</div>
         <div class="tab-mini" id="gt-rutina" onclick="switchGymSub('rutina')">📋 Rutina</div>
         <div class="tab-mini" id="gt-progreso" onclick="switchGymSub('progreso')">📈 Progreso</div>
+        <div class="tab-mini" id="gt-biblioteca" onclick="switchGymSub('biblioteca')">📚 Biblioteca</div>
     </div>
 
     <!-- SUB-PAGE: HOY -->
@@ -651,6 +652,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
                 <p>Sin datos para este ejercicio todavía.</p>
             </div>
         </div>
+    </div>
+
+    <!-- SUB-PAGE: BIBLIOTECA -->
+    <div class="gym-sub-page" id="gsp-biblioteca">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding:0 4px">
+            <h3 style="margin:0;font-family:Outfit,sans-serif;font-size:16px">Mis Ejercicios</h3>
+            <button class="btn btn-primary btn-sm" onclick="openModal('modal-exercise')">➕ Nuevo</button>
+        </div>
+        <div id="exercise-library-list" class="food-list"></div>
     </div>
 </div>
 
@@ -846,6 +856,33 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
                 <div><label>Peso (kg)</label><input type="number" id="routine-weight" value="40" step="0.5"></div>
             </div>
             <button class="btn btn-primary btn-full" onclick="addExerciseToRoutine()">✅ Agregar</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modal-exercise">
+    <div class="modal">
+        <div class="modal-header"><span class="modal-title">🏋️ Nuevo Ejercicio</span><button class="btn-icon" onclick="closeModal('modal-exercise')" style="font-size:20px">✕</button></div>
+        <div class="modal-fields">
+            <div class="form-row">
+                <div><label>Emoji</label><input type="text" id="ex-emoji" placeholder="🏋️" maxlength="2"></div>
+                <div><label>Nombre *</label><input type="text" id="ex-name" placeholder="Ej: Vuelos laterales"></div>
+            </div>
+            <div>
+                <label>Grupo Muscular</label>
+                <select id="ex-group">
+                    <option value="Pecho">Pecho</option>
+                    <option value="Espalda">Espalda</option>
+                    <option value="Piernas">Piernas</option>
+                    <option value="Hombros">Hombros</option>
+                    <option value="Bíceps">Bíceps</option>
+                    <option value="Tríceps">Tríceps</option>
+                    <option value="Core">Core</option>
+                    <option value="Glúteos">Glúteos</option>
+                    <option value="Cardio">Cardio</option>
+                </select>
+            </div>
+            <button class="btn btn-primary btn-full" onclick="saveCustomExercise()">💾 Guardar Ejercicio</button>
         </div>
     </div>
 </div>
@@ -1752,13 +1789,14 @@ function initGymPage(){
     const rsel = document.getElementById('routine-ex-select');
     
     const options = all.map(e=>`<option value="${e.id}">${e.emoji} ${e.name} — ${e.muscleGroup}</option>`).join('');
-    sel.innerHTML = options;
-    psel.innerHTML = options;
+    if(sel) sel.innerHTML = options;
+    if(psel) psel.innerHTML = options;
     if(rsel) rsel.innerHTML = options;
     
     renderGymLog();
     renderGymProgress();
     renderRoutine();
+    renderExerciseLibrary();
     checkTodayRoutine();
 }
 
@@ -1772,6 +1810,7 @@ function switchGymSub(sub){
     document.getElementById('gsp-'+sub).classList.add('active');
     
     if(sub === 'rutina') renderRoutine();
+    if(sub === 'biblioteca') renderExerciseLibrary();
 }
 
 let activeRoutineDay = 'Lunes';
@@ -1818,6 +1857,67 @@ function removeRoutineItem(day, idx){
     save('routine', state.routine);
     renderRoutine();
     checkTodayRoutine();
+}
+
+function saveCustomExercise(){
+    const name = document.getElementById('ex-name').value.trim();
+    const emoji = document.getElementById('ex-emoji').value.trim() || '💪';
+    const muscleGroup = document.getElementById('ex-group').value;
+
+    if(!name) { showToast('⚠️ Ingresá un nombre','var(--orange)'); return; }
+
+    const newEx = {
+        id: 'gx_' + Date.now(),
+        name, emoji, muscleGroup
+    };
+
+    state.customExercises.push(newEx);
+    save('exercises', state.customExercises);
+    
+    document.getElementById('ex-name').value = '';
+    closeModal('modal-exercise');
+    initGymPage();
+    showToast('✅ Ejercicio creado');
+}
+
+function renderExerciseLibrary(){
+    const list = document.getElementById('exercise-library-list');
+    if(!list) return;
+    
+    // Mostramos primero los personalizados, luego los built-in
+    const custom = state.customExercises || [];
+    const builtin = EXERCISES_DB;
+
+    const renderItem = (e, isCustom) => `
+        <div class="food-item">
+            <div class="fi-info">
+                <div class="fi-emoji">${e.emoji}</div>
+                <div>
+                    <div class="fi-name">${e.name} ${isCustom ? '<span class="tag-custom">Mío</span>' : ''}</div>
+                    <div class="fi-details">${e.muscleGroup}</div>
+                </div>
+            </div>
+            ${isCustom ? `
+                <button class="btn-icon" onclick="deleteCustomExercise('${e.id}')" style="color:var(--red)">🗑️</button>
+            ` : ''}
+        </div>
+    `;
+
+    list.innerHTML = `
+        <div style="margin-bottom:10px; color:var(--text3); font-size:11px; text-transform:uppercase; letter-spacing:1px">Mis Creaciones</div>
+        ${custom.length ? custom.map(e => renderItem(e, true)).join('') : '<div class="empty-state">No tenés ejercicios creados</div>'}
+        
+        <div style="margin:20px 0 10px; color:var(--text3); font-size:11px; text-transform:uppercase; letter-spacing:1px">Base de Datos</div>
+        ${builtin.map(e => renderItem(e, false)).join('')}
+    `;
+}
+
+function deleteCustomExercise(id){
+    if(!confirm('¿Borrar este ejercicio?')) return;
+    state.customExercises = state.customExercises.filter(e => e.id !== id);
+    save('exercises', state.customExercises);
+    initGymPage();
+    showToast('🗑️ Ejercicio eliminado', 'var(--red)');
 }
 
 function openAddRoutineModal(){
