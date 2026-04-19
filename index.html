@@ -16,6 +16,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
     --bg:#0b0d12;--bg2:#111318;--bg3:#161921;--card:#1a1e28;--card2:#20263380;
@@ -749,6 +751,22 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
         <button class="btn btn-ghost btn-full" onclick="logout()">🚪 Cerrar sesión</button>
     </div>
 
+    <!-- Cloud Sync -->
+    <div class="settings-card">
+        <div class="settings-card-title">☁️ Sincronización en la Nube</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:12px">Vinculá Supabase para que tus datos no se pierdan nunca.</div>
+        <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:6px">
+            <span class="settings-row-label">Project URL</span>
+            <input type="password" id="sb-url" placeholder="https://xyz.supabase.co" class="ri-input" style="width:100%">
+        </div>
+        <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:6px;margin-top:10px">
+            <span class="settings-row-label">Anon Key</span>
+            <input type="password" id="sb-key" placeholder="eyJhbG..." class="ri-input" style="width:100%">
+        </div>
+        <div id="sb-status" style="font-size:11px;margin:10px 0;text-align:center">🔴 Desconectado</div>
+        <button class="btn btn-primary btn-full" onclick="initSupabase()">Conectar y Sincronizar</button>
+    </div>
+
     <!-- App Info -->
     <div class="settings-card">
         <div class="settings-card-title">📱 App</div>
@@ -836,6 +854,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
 <div class="toast" id="toast"></div>
 
 <script>
+let supabase = null;
+const SB_CONFIG_KEY = 'ci_sb_config';
 // ══════════════════════════════════════
 // FOOD DATABASE
 // ══════════════════════════════════════
@@ -1054,7 +1074,10 @@ function loadState(){
     try { state.favorites       = JSON.parse(localStorage.getItem(uk('favs'))     || '[]'); } catch{}
     try { state.routine         = JSON.parse(localStorage.getItem(uk('routine'))  || '{}'); } catch{}
 }
-function save(k,v){ localStorage.setItem(uk(k), JSON.stringify(v)); }
+function save(k,v){ 
+    localStorage.setItem(uk(k), JSON.stringify(v)); 
+    if(supabase) pushToCloud(k, v);
+}
 function saveAll(){
     save('db',state.db); save('cf',state.customFoods);
     save('tpl',state.templates); save('weight',state.weightLog);
@@ -1623,6 +1646,12 @@ function initSettings(){
     document.getElementById('profile-name').value=u.name||'';
     document.getElementById('profile-emoji').value=u.emoji||'👤';
     document.getElementById('profile-pin').value=''; // never show PIN
+
+    // Cloud config
+    const cfg = JSON.parse(localStorage.getItem(SB_CONFIG_KEY) || '{}');
+    if(cfg.url) document.getElementById('sb-url').value = cfg.url;
+    if(cfg.key) document.getElementById('sb-key').value = cfg.key;
+    updateCloudStatus();
 }
 
 function updateGoalDisplay(){
@@ -2300,6 +2329,83 @@ if(savedUserId){
         }
     }
 }
+
+// ── SUPABASE SYNC ──
+async function initSupabase(){
+    const url = document.getElementById('sb-url').value.trim();
+    const key = document.getElementById('sb-key').value.trim();
+    if(!url || !key) { showToast('⚠️ Ingresá URL y Key','var(--orange)'); return; }
+
+    try {
+        console.log('[Cloud] Connecting...');
+        // SDK v2 uses supabase.createClient
+        supabase = window.supabase.createClient(url, key);
+        localStorage.setItem(SB_CONFIG_KEY, JSON.stringify({url, key}));
+        updateCloudStatus('⏳ Sincronizando...');
+        
+        await pullFromCloud();
+        showToast('☁️ Nube conectada y sincronizada');
+        updateCloudStatus();
+    } catch(e) {
+        console.error(e);
+        updateCloudStatus('❌ Error de conexión');
+        supabase = null;
+    }
+}
+
+function updateCloudStatus(msg){
+    const el = document.getElementById('sb-status');
+    if(!el) return;
+    if(msg) { el.textContent = msg; return; }
+    el.textContent = supabase ? '🟢 Conectado' : '🔴 Desconectado';
+}
+
+async function pushToCloud(category, payload){
+    if(!supabase || !currentUser) return;
+    try {
+        await supabase.from('ci_cloud_sync').upsert({
+            user_id: currentUser.id,
+            category: category,
+            payload: payload,
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id, category' });
+    } catch(e) { console.error('[Cloud Push]', e); }
+}
+
+async function pullFromCloud(){
+    if(!supabase || !currentUser) return;
+    try {
+        const { data, error } = await supabase
+            .from('ci_cloud_sync')
+            .select('category, payload')
+            .eq('user_id', currentUser.id);
+        
+        if(error) throw error;
+        if(data && data.length > 0){
+            data.forEach(row => {
+                localStorage.setItem(uk(row.category), JSON.stringify(row.payload));
+            });
+            loadState();
+            initApp();
+        }
+    } catch(e) { console.error('[Cloud Pull]', e); }
+}
+
+// Auto-connect if config exists
+(async function autoConnectCloud(){
+    const cfg = JSON.parse(localStorage.getItem(SB_CONFIG_KEY) || '{}');
+    if(cfg.url && cfg.key){
+        try {
+            // Give a tiny delay for SDK to load
+            setTimeout(() => {
+                if(window.supabase) {
+                    supabase = window.supabase.createClient(cfg.url, cfg.key);
+                    updateCloudStatus();
+                }
+            }, 500);
+        } catch(e) { console.error('[AutoConnect]', e); }
+    }
+})();
 </script>
 </body>
 </html>
