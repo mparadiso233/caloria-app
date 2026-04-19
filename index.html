@@ -854,7 +854,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
 <div class="toast" id="toast"></div>
 
 <script>
-let supabase = null;
+let sbClient = null;
 const SB_CONFIG_KEY = 'ci_sb_config';
 const SB_DEFAULT_URL = 'https://bnxobjaxickvwpriavxl.supabase.co';
 const SB_DEFAULT_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJueG9iamF4aWNrdndwcmlhdnhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2MzQxNTEsImV4cCI6MjA5MjIxMDE1MX0.Bnd0Aw7LtNTEbLja3wv6GH3Ezr9PHTIZnpJCriSkFtI';
@@ -1078,7 +1078,7 @@ function loadState(){
 }
 function save(k,v){ 
     localStorage.setItem(uk(k), JSON.stringify(v)); 
-    if(supabase) pushToCloud(k, v);
+    if(sbClient) pushToCloud(k, v);
 }
 function saveAll(){
     save('db',state.db); save('cf',state.customFoods);
@@ -2340,8 +2340,7 @@ async function initSupabase(){
 
     try {
         console.log('[Cloud] Connecting...');
-        // SDK v2 uses supabase.createClient
-        supabase = window.supabase.createClient(url, key);
+        sbClient = window.supabase.createClient(url, key);
         localStorage.setItem(SB_CONFIG_KEY, JSON.stringify({url, key}));
         updateCloudStatus('⏳ Sincronizando...');
         
@@ -2351,7 +2350,7 @@ async function initSupabase(){
     } catch(e) {
         console.error(e);
         updateCloudStatus('❌ Error de conexión');
-        supabase = null;
+        sbClient = null;
     }
 }
 
@@ -2359,13 +2358,13 @@ function updateCloudStatus(msg){
     const el = document.getElementById('sb-status');
     if(!el) return;
     if(msg) { el.textContent = msg; return; }
-    el.textContent = supabase ? '🟢 Conectado' : '🔴 Desconectado';
+    el.textContent = sbClient ? '🟢 Conectado' : '🔴 Desconectado';
 }
 
 async function pushToCloud(category, payload){
-    if(!supabase || !currentUser) return;
+    if(!sbClient || !currentUser) return;
     try {
-        await supabase.from('ci_cloud_sync').upsert({
+        await sbClient.from('ci_cloud_sync').upsert({
             user_id: currentUser.id,
             category: category,
             payload: payload,
@@ -2375,9 +2374,9 @@ async function pushToCloud(category, payload){
 }
 
 async function pullFromCloud(){
-    if(!supabase || !currentUser) return;
+    if(!sbClient || !currentUser) return;
     try {
-        const { data, error } = await supabase
+        const { data, error } = await sbClient
             .from('ci_cloud_sync')
             .select('category, payload')
             .eq('user_id', currentUser.id);
@@ -2402,7 +2401,7 @@ async function pullFromCloud(){
         try {
             setTimeout(() => {
                 if(window.supabase) {
-                    supabase = window.supabase.createClient(cfg.url, cfg.key);
+                    sbClient = window.supabase.createClient(cfg.url, cfg.key);
                     updateCloudStatus();
                     pullFromCloud(); // Auto-sync on boot
                 }
