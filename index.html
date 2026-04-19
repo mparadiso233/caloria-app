@@ -1814,8 +1814,9 @@ async function searchOnline(){
     resultsEl.innerHTML = '<p style="text-align:center;color:var(--text3);font-size:12px;padding:20px">Buscando productos reales...</p>';
     
     try {
-        // API: OpenFoodFacts Search (usando el subdominio de España/Español para mejor compatibilidad)
-        const url = `https://es.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=20`;
+        // API: OpenFoodFacts Search (pasando por un Proxy de CORS para evitar bloqueos)
+        const targetUrl = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=20`;
+        const url = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
         const resp = await fetch(url, {
             method: 'GET',
             mode: 'cors',
