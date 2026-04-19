@@ -410,6 +410,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
     <div id="user-select-section">
         <div class="user-select-label">Elegí tu usuario</div>
         <div class="users-row" id="users-row"></div>
+        <div style="text-align:center;margin-top:20px">
+            <button class="pin-back-btn" onclick="forceUpdate()" style="text-decoration:none;opacity:0.6">↻ Forzar actualización de la App</button>
+        </div>
     </div>
 
     <!-- PIN entry -->
@@ -744,6 +747,18 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
     <div class="settings-card">
         <div class="settings-card-title">🔐 Sesión</div>
         <button class="btn btn-ghost btn-full" onclick="logout()">🚪 Cerrar sesión</button>
+    </div>
+
+    <!-- App Info -->
+    <div class="settings-card">
+        <div class="settings-card-title">📱 App</div>
+        <div class="settings-row">
+            <div>
+                <div class="settings-row-label">Versión</div>
+                <div class="settings-row-sub">v8 - Optimización de Rutina</div>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="forceUpdate()">↻ Actualizar</button>
+        </div>
     </div>
 
     <!-- Danger -->
@@ -2104,6 +2119,24 @@ function showToast(msg='', color='var(--green)'){
     void t.offsetWidth;
     t.classList.add('show');
     _toastHideT=setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+function forceUpdate(){
+    showToast('🔍 Buscando actualizaciones...');
+    if('serviceWorker' in navigator){
+        navigator.serviceWorker.getRegistrations().then(regs => {
+            if(regs.length === 0) window.location.reload(true);
+            regs.forEach(reg => {
+                reg.update().then(() => {
+                    window.location.reload(true);
+                });
+            });
+        }).catch(() => {
+            window.location.reload(true);
+        });
+    } else {
+        window.location.reload(true);
+    }
 }
 
 // ══════════════════════════════════════
