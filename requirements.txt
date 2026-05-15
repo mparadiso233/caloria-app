@@ -1,0 +1,6 @@
+pyTelegramBotAPI
+psycopg2-binary
+pandas
+google-generativeai
+matplotlib
+openpyxl
